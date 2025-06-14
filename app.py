@@ -9,10 +9,10 @@ from streamlit_folium import folium_static
 import plotly.express as px
 
 # Load final dataset
-data = pd.read_csv(r'C:\NEO_Project\final_neo_dataset.csv')
+data = pd.read_csv(r'final_neo_dataset.csv')
 
 # Load model and scaler
-model = joblib.load(r'C:\NEO_Project\models\best_model.pkl')
+model = joblib.load(r'models/best_model.pkl')
 scaler = joblib.load(r'C:\NEO_Project\models\scaler.pkl')
 
 st.set_page_config(page_title="Jinx: NEO Hazard Predictor", layout="wide")
