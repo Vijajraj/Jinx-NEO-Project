@@ -1,0 +1,13 @@
+📦 NEO_Project/
+┣ 📄 app.py # Streamlit application frontend
+┣ 📄 neo_data_feed.py # Fetch 7-day feed data
+┣ 📄 neo_data_collector.py # Combine all fetched data
+┣ 📄 save_best_model.py # Train and save best AI model
+┣ 📄 model_comparison.py # Compare ML models
+┣ 📄 neo_hazard_prediction.py # Prediction logic
+┣ 📂 models/
+┃ ┗ 📄 best_model.pkl # Trained best AI model
+┣ 📄 final_neo_dataset.csv # Combined dataset
+┣ 📄 run_project.bat # Batch file to start the project
+┣ 📄 requirements.txt # Dependencies list
+
