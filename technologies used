@@ -1,0 +1,22 @@
+
+---
+
+## 🛠️ Technologies Used
+
+- Python 3.12
+- Pandas, NumPy, scikit-learn
+- Streamlit
+- Folium (for interactive maps)
+- NASA NEO API
+- Joblib (for model persistence)
+- Twilio (optional SMS alerts)
+
+---
+
+## 📦 Setup Instructions
+
+### 🔹 Clone the repository:
+
+```bash
+git clone https://github.com/Vijayraj/Jinx-NEO-Project.git
+cd Jinx-NEO-Project
