@@ -20,7 +20,8 @@ model = joblib.load('best_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
 # Load QA pipeline
-qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
+qa_pipeline = pipeline("question-answering", model="deepset/minilm-uncased-squad2")
+
 
 # Streamlit config
 st.set_page_config(page_title="Jinx: NEO Hazard Predictor", layout="wide")
