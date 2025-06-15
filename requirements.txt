@@ -10,3 +10,4 @@ joblib
 plotly
 transformers
 torch
+requests
