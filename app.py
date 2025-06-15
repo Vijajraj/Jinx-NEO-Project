@@ -18,7 +18,8 @@ model = joblib.load('best_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
 # -------- Hugging Face API Setup ---------
-hf_token = st.secrets["hf_token"]
+hf_token = st.secrets["huggingface"]["api_token"]
+
 API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
 headers = {"Authorization": f"Bearer {hf_token}"}
 
@@ -134,6 +135,7 @@ if st.button("Get AI Answer"):
         with st.spinner("Thinking..."):
             API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
             headers = {"Authorization": f"Bearer {st.secrets['huggingface']['api_token']}"}
+
             payload = {
                 "inputs": user_question,
                 "parameters": {
