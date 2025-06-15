@@ -128,18 +128,27 @@ st.subheader("💬 Ask Anything about Near-Earth Objects")
 user_question = st.text_input("Type your question here:")
 
 if st.button("Get AI Answer"):
-    if user_question.strip() != "":
-        prompt = f"Answer this question about Near-Earth Objects in detail: {user_question}"
-        try:
-            output = query_generative(prompt)
-            st.info(output)
-        except Exception as e:
-            st.error(f"Error: {e}")
+    if user_question.strip() == "":
+        st.warning("Please enter a question.")
     else:
-        st.warning("Please enter a question first.")
+        with st.spinner("Thinking..."):
+            API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
+            headers = {"Authorization": f"Bearer {st.secrets['huggingface']['api_token']}"}
+            payload = {
+                "inputs": user_question,
+                "parameters": {
+                    "temperature": 0.5,
+                    "max_length": 200
+                }
+            }
+            response = requests.post(API_URL, headers=headers, json=payload)
+            
+            if response.status_code == 200:
+                result = response.json()
+                st.success(result[0]['generated_text'])
+            else:
+                st.error(f"API Error: {response.status_code} — {response.text}")
 
-st.markdown("---")
-st.caption("👨‍💻 Developed by Vijayraj S | AI-DS | Chennai Institute of Technology")
 
 
 
