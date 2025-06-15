@@ -9,60 +9,60 @@ from streamlit_folium import folium_static
 import plotly.express as px
 import requests
 
-# Load final dataset
-data = pd.read_csv('final_neo_dataset.csv')
+# -------- App Config ---------
+st.set_page_config(page_title="Jinx: NEO Hazard Predictor", layout="wide")
 
-# Load model and scaler
+# -------- Load Data & Models ---------
+data = pd.read_csv('final_neo_dataset.csv')
 model = joblib.load('best_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
-# Load Hugging Face API Token from Streamlit secrets
-hf_token = st.secrets["api"]["hf_token"]
-API_URL = "https://api-inference.huggingface.co/models/deepset/roberta-base-squad2"
+# -------- Hugging Face API Setup ---------
+hf_token = st.secrets["hf_token"]
+API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
 headers = {"Authorization": f"Bearer {hf_token}"}
 
-# Function to query Hugging Face API
-def query(payload):
+def query_generative(prompt):
+    payload = {"inputs": prompt}
     response = requests.post(API_URL, headers=headers, json=payload)
-    return response.json()
+    response.raise_for_status()
+    result = response.json()
+    return result[0]['generated_text']
 
-# Page config
-st.set_page_config(page_title="Jinx: NEO Hazard Predictor", layout="wide")
+# -------- Title & Sidebar ---------
 st.title("🚀 Jinx: Near-Earth Object (NEO) Hazard Prediction AI")
 st.markdown("---")
 
-# Sidebar filters
 st.sidebar.header("🔍 Filters")
-min_diameter = st.sidebar.slider(
-    "Minimum Diameter (km)", 
-    float(data['diameter_min'].min()), 
-    float(data['diameter_min'].max()), 
-    0.1
-)
-hazard_option = st.sidebar.selectbox(
-    "Filter by Hazard Status",
-    ['All', 'Hazardous', 'Safe']
-)
+
+# Diameter filter
+min_diameter = st.sidebar.slider("Minimum Diameter (km)",
+                                 float(data['diameter_min'].min()), 
+                                 float(data['diameter_min'].max()), 0.1)
+
+hazard_option = st.sidebar.selectbox("Filter by Hazard Status", ['All', 'Hazardous', 'Safe'])
+
+# Apply filters
 filtered_data = data[data['diameter_min'] >= min_diameter]
 if hazard_option == 'Hazardous':
     filtered_data = filtered_data[filtered_data['hazardous'] == 1]
 elif hazard_option == 'Safe':
     filtered_data = filtered_data[filtered_data['hazardous'] == 0]
+
 st.write(f"**Total NEOs after filter:** {len(filtered_data)}")
 st.dataframe(filtered_data)
+
 st.markdown("---")
 
-# Bar chart
+# -------- Visualizations ---------
 st.subheader("📊 NEO Hazard Status Distribution")
 hazard_counts = data['hazardous'].value_counts().rename({0: 'Safe', 1: 'Hazardous'})
 st.bar_chart(hazard_counts)
 
-# Line chart
 st.subheader("📈 Average Velocity by Hazard Status")
 avg_velocity = data.groupby('hazardous')['velocity_kms'].mean().rename({0: 'Safe', 1: 'Hazardous'})
 st.line_chart(avg_velocity)
 
-# Scatterplot
 st.subheader("📊 Velocity vs Miss Distance Scatterplot")
 plt.figure(figsize=(8,5))
 sns.scatterplot(data=filtered_data, x='velocity_kms', y='miss_distance_km', hue='hazardous', palette=['green', 'red'])
@@ -71,7 +71,6 @@ plt.ylabel("Miss Distance (km)")
 plt.title("Velocity vs Miss Distance by Hazard Status")
 st.pyplot(plt)
 
-# Globe Map
 st.subheader("🌐 NEO Miss Distance Map (Simulated Locations)")
 m = folium.Map(location=[0, 0], zoom_start=2)
 for _, row in filtered_data.iterrows():
@@ -89,27 +88,24 @@ for _, row in filtered_data.iterrows():
     ).add_to(m)
 folium_static(m, width=900, height=500)
 
-# Animated line chart
+# Animated line chart (simulate if no dates)
 st.subheader("📈 Animated NEO Velocity Trend (Simulated Dates)")
 if 'date' not in data.columns:
     np.random.seed(42)
     random_dates = pd.date_range("2024-06-01", periods=len(data), freq='H')
     data['date'] = random_dates
-fig = px.line(
-    data.sort_values("date"),
-    x="date",
-    y="velocity_kms",
-    title="NEO Velocity Over Time",
-    animation_frame=data['date'].dt.date.astype(str),
-    range_y=[0, data['velocity_kms'].max() + 10],
-    color='hazardous',
-    labels={'hazardous': 'Hazardous (1=Yes, 0=No)'}
-)
+
+fig = px.line(data.sort_values("date"), x="date", y="velocity_kms",
+              title="NEO Velocity Over Time",
+              animation_frame=data['date'].dt.date.astype(str),
+              range_y=[0, data['velocity_kms'].max() + 10],
+              color='hazardous', labels={'hazardous': 'Hazardous (1=Yes, 0=No)'})
 st.plotly_chart(fig, use_container_width=True)
 
-# Prediction section
+# -------- Prediction Section ---------
 st.markdown("---")
 st.subheader("🚀 Predict if a NEO is Hazardous")
+
 diameter_min = st.number_input("Estimated Diameter Min (km)", min_value=0.0, value=0.5)
 diameter_max = st.number_input("Estimated Diameter Max (km)", min_value=0.0, value=1.5)
 velocity = st.number_input("Velocity (km/s)", min_value=0.0, value=20.0)
@@ -119,34 +115,35 @@ if st.button("Predict Hazard Status"):
     X_new = np.array([[diameter_min, diameter_max, velocity, miss_distance]])
     X_new_scaled = scaler.transform(X_new)
     prediction = model.predict(X_new_scaled)
+
     if prediction[0] == 1:
         st.error("⚠️ This NEO is predicted to be **Hazardous**!")
     else:
         st.success("✅ This NEO is predicted to be **Safe**.")
 
-# Question Answering section
+# -------- AI Q&A Section ---------
 st.markdown("---")
-st.subheader("💡 Ask a NEO-related Question")
+st.subheader("💬 Ask Anything about Near-Earth Objects")
 
-context = """
-Near-Earth Objects (NEOs) are asteroids and comets with orbits that bring them close to Earth.
-NASA monitors these to assess potential impact risks. Their size, velocity, and miss distance determine their hazard status.
-"""
+user_question = st.text_input("Type your question here:")
 
-user_question = st.text_input("Ask your question based on NEOs:")
-
-if st.button("Get Answer"):
-    if user_question:
-        output = query({
-            "inputs": {
-                "question": user_question,
-                "context": context
-            }
-        })
-        answer = output.get('answer', 'Could not find an answer.')
-        st.write("**Answer:**", answer)
+if st.button("Get AI Answer"):
+    if user_question.strip() != "":
+        prompt = f"Answer this question about Near-Earth Objects in detail: {user_question}"
+        try:
+            output = query_generative(prompt)
+            st.info(output)
+        except Exception as e:
+            st.error(f"Error: {e}")
     else:
-        st.warning("Please enter a question.")
+        st.warning("Please enter a question first.")
 
 st.markdown("---")
 st.caption("👨‍💻 Developed by Vijayraj S | AI-DS | Chennai Institute of Technology")
+
+
+
+
+
+   
+
