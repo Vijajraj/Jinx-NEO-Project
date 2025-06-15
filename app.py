@@ -1,4 +1,3 @@
-# Existing imports
 import streamlit as st
 import pandas as pd
 import seaborn as sns
@@ -8,49 +7,62 @@ import numpy as np
 import folium
 from streamlit_folium import folium_static
 import plotly.express as px
+import requests
 
-# New import for QA model
-from transformers import pipeline
-
-# Load dataset
-data = pd.read_csv(r'final_neo_dataset.csv')
+# Load final dataset
+data = pd.read_csv('final_neo_dataset.csv')
 
 # Load model and scaler
 model = joblib.load('best_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
-# Load QA pipeline
-qa_pipeline = pipeline("question-answering", model="deepset/minilm-uncased-squad2")
+# Load Hugging Face API Token from Streamlit secrets
+hf_token = st.secrets["api"]["hf_token"]
+API_URL = "https://api-inference.huggingface.co/models/deepset/roberta-base-squad2"
+headers = {"Authorization": f"Bearer {hf_token}"}
 
+# Function to query Hugging Face API
+def query(payload):
+    response = requests.post(API_URL, headers=headers, json=payload)
+    return response.json()
 
-# Streamlit config
+# Page config
 st.set_page_config(page_title="Jinx: NEO Hazard Predictor", layout="wide")
 st.title("🚀 Jinx: Near-Earth Object (NEO) Hazard Prediction AI")
 st.markdown("---")
 
 # Sidebar filters
 st.sidebar.header("🔍 Filters")
-min_diameter = st.sidebar.slider("Minimum Diameter (km)", float(data['diameter_min'].min()), float(data['diameter_min'].max()), 0.1)
-hazard_option = st.sidebar.selectbox("Filter by Hazard Status", ['All', 'Hazardous', 'Safe'])
-
+min_diameter = st.sidebar.slider(
+    "Minimum Diameter (km)", 
+    float(data['diameter_min'].min()), 
+    float(data['diameter_min'].max()), 
+    0.1
+)
+hazard_option = st.sidebar.selectbox(
+    "Filter by Hazard Status",
+    ['All', 'Hazardous', 'Safe']
+)
 filtered_data = data[data['diameter_min'] >= min_diameter]
 if hazard_option == 'Hazardous':
     filtered_data = filtered_data[filtered_data['hazardous'] == 1]
 elif hazard_option == 'Safe':
     filtered_data = filtered_data[filtered_data['hazardous'] == 0]
-
 st.write(f"**Total NEOs after filter:** {len(filtered_data)}")
 st.dataframe(filtered_data)
-
 st.markdown("---")
+
+# Bar chart
 st.subheader("📊 NEO Hazard Status Distribution")
 hazard_counts = data['hazardous'].value_counts().rename({0: 'Safe', 1: 'Hazardous'})
 st.bar_chart(hazard_counts)
 
+# Line chart
 st.subheader("📈 Average Velocity by Hazard Status")
 avg_velocity = data.groupby('hazardous')['velocity_kms'].mean().rename({0: 'Safe', 1: 'Hazardous'})
 st.line_chart(avg_velocity)
 
+# Scatterplot
 st.subheader("📊 Velocity vs Miss Distance Scatterplot")
 plt.figure(figsize=(8,5))
 sns.scatterplot(data=filtered_data, x='velocity_kms', y='miss_distance_km', hue='hazardous', palette=['green', 'red'])
@@ -59,6 +71,7 @@ plt.ylabel("Miss Distance (km)")
 plt.title("Velocity vs Miss Distance by Hazard Status")
 st.pyplot(plt)
 
+# Globe Map
 st.subheader("🌐 NEO Miss Distance Map (Simulated Locations)")
 m = folium.Map(location=[0, 0], zoom_start=2)
 for _, row in filtered_data.iterrows():
@@ -66,15 +79,22 @@ for _, row in filtered_data.iterrows():
     lon = np.random.uniform(-180, 180)
     popup_info = f"{row['name']}<br>Miss Distance: {row['miss_distance_km']:.2f} km<br>Velocity: {row['velocity_kms']:.2f} km/s"
     color = 'red' if row['hazardous'] == 1 else 'green'
-    folium.CircleMarker(location=[lat, lon], radius=5, popup=popup_info, color=color, fill=True, fill_opacity=0.7).add_to(m)
+    folium.CircleMarker(
+        location=[lat, lon],
+        radius=5,
+        popup=popup_info,
+        color=color,
+        fill=True,
+        fill_opacity=0.7
+    ).add_to(m)
 folium_static(m, width=900, height=500)
 
+# Animated line chart
 st.subheader("📈 Animated NEO Velocity Trend (Simulated Dates)")
 if 'date' not in data.columns:
     np.random.seed(42)
     random_dates = pd.date_range("2024-06-01", periods=len(data), freq='H')
     data['date'] = random_dates
-
 fig = px.line(
     data.sort_values("date"),
     x="date",
@@ -87,6 +107,7 @@ fig = px.line(
 )
 st.plotly_chart(fig, use_container_width=True)
 
+# Prediction section
 st.markdown("---")
 st.subheader("🚀 Predict if a NEO is Hazardous")
 diameter_min = st.number_input("Estimated Diameter Min (km)", min_value=0.0, value=0.5)
@@ -103,50 +124,29 @@ if st.button("Predict Hazard Status"):
     else:
         st.success("✅ This NEO is predicted to be **Safe**.")
 
+# Question Answering section
 st.markdown("---")
-st.subheader("🧠 Ask a Question about NEO Data")
+st.subheader("💡 Ask a NEO-related Question")
 
-# Dynamic context from dataset
-context = f"""There are {len(data)} NEOs in the dataset.
-Out of them, {data['hazardous'].sum()} are hazardous and {(data['hazardous'] == 0).sum()} are safe.
-The average velocity is {data['velocity_kms'].mean():.2f} km/s.
-The largest NEO has a maximum diameter of {data['diameter_max'].max():.2f} km.
-The closest miss distance recorded is {data['miss_distance_km'].min():.2f} km."""
+context = """
+Near-Earth Objects (NEOs) are asteroids and comets with orbits that bring them close to Earth.
+NASA monitors these to assess potential impact risks. Their size, velocity, and miss distance determine their hazard status.
+"""
 
-# User question input
-user_question = st.text_input("Type your question here:")
+user_question = st.text_input("Ask your question based on NEOs:")
 
-if st.button("Get AI Answer"):
-    if user_question.strip() == "":
-        st.warning("Please enter a question.")
+if st.button("Get Answer"):
+    if user_question:
+        output = query({
+            "inputs": {
+                "question": user_question,
+                "context": context
+            }
+        })
+        answer = output.get('answer', 'Could not find an answer.')
+        st.write("**Answer:**", answer)
     else:
-        try:
-            ai_response = qa_pipeline(question=user_question, context=context)
-            if ai_response['score'] > 0.4:
-                st.success(f"💡 AI Answer: **{ai_response['answer']}** (confidence: {ai_response['score']:.2f})")
-            else:
-                st.info("🤖 AI wasn't confident about this — trying rule-based logic.")
-                if "how many hazardous" in user_question.lower():
-                    count = data['hazardous'].sum()
-                    st.info(f"There are **{count} hazardous NEOs**.")
-                elif "average velocity" in user_question.lower():
-                    avg_vel = data['velocity_kms'].mean()
-                    st.info(f"The average velocity is **{avg_vel:.2f} km/s**.")
-                elif "diameter greater than" in user_question.lower():
-                    import re
-                    match = re.search(r'greater than ([0-9.]+)', user_question.lower())
-                    if match:
-                        threshold = float(match.group(1))
-                        count = len(data[data['diameter_min'] > threshold])
-                        st.info(f"There are **{count} NEOs** with diameter greater than **{threshold} km**.")
-                    else:
-                        st.warning("Couldn't find a number in your query.")
-                else:
-                    st.warning("Sorry, no answer found for this question.")
-        except Exception as e:
-            st.error(f"Error processing question: {e}")
+        st.warning("Please enter a question.")
 
 st.markdown("---")
 st.caption("👨‍💻 Developed by Vijayraj S | AI-DS | Chennai Institute of Technology")
-
-
