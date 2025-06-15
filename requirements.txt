@@ -1,10 +1,11 @@
 streamlit
 pandas
-seaborn
+numpy
 matplotlib
-plotly
+seaborn
 folium
 streamlit-folium
-joblib
 scikit-learn
-twilio
+joblib
+plotly
+transformers
