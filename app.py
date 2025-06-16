@@ -117,20 +117,22 @@ if st.button("Predict Hazard Status"):
         st.success("✅ This NEO is predicted to be **Safe**.")
 
 # Q&A AI Section
+# 🤖 Open-generation Q&A section using Hugging Face API
 st.markdown("---")
 st.subheader("🤖 Ask Jinx AI Anything About Space, NEOs, or Science")
 
 # Load Hugging Face API token safely
 hf_token = st.secrets["huggingface"]["hf_token"]
 
-API_URL = "https://api-inference.huggingface.co/models/deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+# ✅ Use Llama-2-13b-chat-hf as it supports API inference
+API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-2-13b-chat-hf"
 headers = {"Authorization": f"Bearer {hf_token}"}
 
 def generate_open_response(prompt):
     payload = {
         "inputs": prompt,
         "parameters": {
-            "max_new_tokens": 300,
+            "max_new_tokens": 250,
             "temperature": 0.7,
             "top_p": 0.95,
             "do_sample": True
@@ -139,10 +141,16 @@ def generate_open_response(prompt):
     response = requests.post(API_URL, headers=headers, json=payload)
     if response.status_code == 200:
         return response.json()[0]['generated_text']
+    elif response.status_code == 404:
+        return "❌ Error: Model not found — check model name and your token access."
+    elif response.status_code == 429:
+        return "🚫 Too many requests — you’ve hit a rate limit. Try again soon."
     else:
         return f"❌ Error: {response.status_code} - {response.text}"
 
+# User input field
 user_question = st.text_input("Ask a question", placeholder="E.g., How fast do NEOs travel in space?")
+
 if st.button("Ask Jinx AI"):
     if user_question.strip() != "":
         with st.spinner("Jinx AI is thinking..."):
@@ -151,8 +159,6 @@ if st.button("Ask Jinx AI"):
     else:
         st.warning("❗ Please enter a valid question.")
 
-st.markdown("---")
-st.caption("👨‍💻 Developed by Vijayraj S | AI-DS | Chennai Institute of Technology")
 
 
 
