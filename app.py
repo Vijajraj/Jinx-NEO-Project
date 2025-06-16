@@ -7,15 +7,15 @@ import numpy as np
 import folium
 from streamlit_folium import folium_static
 import plotly.express as px
-import requests
 
-# Load final dataset
+# Load dataset
 data = pd.read_csv(r'final_neo_dataset.csv')
 
 # Load model and scaler
 model = joblib.load('best_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
+# Streamlit page config
 st.set_page_config(page_title="Jinx: NEO Hazard Predictor", layout="wide")
 st.title("🚀 Jinx: Near-Earth Object (NEO) Hazard Prediction AI")
 st.markdown("---")
@@ -23,7 +23,6 @@ st.markdown("---")
 # Sidebar filters
 st.sidebar.header("🔍 Filters")
 
-# Diameter slider
 min_diameter = st.sidebar.slider(
     "Minimum Diameter (km)",
     float(data['diameter_min'].min()),
@@ -31,13 +30,12 @@ min_diameter = st.sidebar.slider(
     0.1
 )
 
-# Hazard status dropdown
 hazard_option = st.sidebar.selectbox(
     "Filter by Hazard Status",
     ['All', 'Hazardous', 'Safe']
 )
 
-# Filter data based on selections
+# Filter dataset
 filtered_data = data[data['diameter_min'] >= min_diameter]
 
 if hazard_option == 'Hazardous':
@@ -68,7 +66,7 @@ plt.ylabel("Miss Distance (km)")
 plt.title("Velocity vs Miss Distance by Hazard Status")
 st.pyplot(plt)
 
-# Interactive Globe Map
+# Interactive Map
 st.subheader("🌐 NEO Miss Distance Map (Simulated Locations)")
 m = folium.Map(location=[0, 0], zoom_start=2)
 
@@ -125,52 +123,5 @@ if st.button("Predict Hazard Status"):
     else:
         st.success("✅ This NEO is predicted to be **Safe**.")
 
-# 🤖 Open-generation Q&A section using Hugging Face API
-st.markdown("---")
-st.subheader("🤖 Ask Jinx AI Anything About Space, NEOs, or Science")
-
-hf_token = st.secrets["huggingface"]["hf_token"]
-API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-2-13b-chat-hf"
-headers = {"Authorization": f"Bearer {hf_token}"}
-
-def generate_open_response(prompt):
-    payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 250,
-            "temperature": 0.7,
-            "top_p": 0.95,
-            "do_sample": True
-        }
-    }
-    response = requests.post(API_URL, headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()[0]['generated_text']
-    elif response.status_code == 404:
-        return "❌ Error: Model not found — check model name and your token access."
-    elif response.status_code == 429:
-        return "🚫 Too many requests — you’ve hit a rate limit. Try again soon."
-    else:
-        return f"❌ Error: {response.status_code} - {response.text}"
-
-user_question = st.text_input("Ask a question", placeholder="E.g., How fast do NEOs travel in space?")
-
-if st.button("Ask Jinx AI"):
-    if user_question.strip() != "":
-        with st.spinner("Jinx AI is thinking..."):
-            answer = generate_open_response(user_question)
-            st.success(answer)
-    else:
-        st.warning("❗ Please enter a valid question.")
-
 st.markdown("---")
 st.caption("👨‍💻 Developed by Vijayraj S | AI-DS | Chennai Institute of Technology")
-
-  
-
-  
-
-
-
-
-
