@@ -16,6 +16,7 @@ data = pd.read_csv(r'final_neo_dataset.csv')
 model = joblib.load('best_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
+# Page config
 st.set_page_config(page_title="Jinx: NEO Hazard Predictor", layout="wide")
 
 st.title("🚀 Jinx: Near-Earth Object (NEO) Hazard Prediction AI")
@@ -24,7 +25,6 @@ st.markdown("---")
 # Sidebar filters
 st.sidebar.header("🔍 Filters")
 
-# Diameter slider
 min_diameter = st.sidebar.slider(
     "Minimum Diameter (km)",
     float(data['diameter_min'].min()),
@@ -32,13 +32,11 @@ min_diameter = st.sidebar.slider(
     0.1
 )
 
-# Hazard status dropdown
 hazard_option = st.sidebar.selectbox(
     "Filter by Hazard Status",
     ['All', 'Hazardous', 'Safe']
 )
 
-# Filter data based on selections
 filtered_data = data[data['diameter_min'] >= min_diameter]
 
 if hazard_option == 'Hazardous':
@@ -52,19 +50,18 @@ st.dataframe(filtered_data)
 
 st.markdown("---")
 
-# Bar Chart — Hazard Status Distribution
+# Bar Chart
 st.subheader("📊 NEO Hazard Status Distribution")
 hazard_counts = data['hazardous'].value_counts().rename({0: 'Safe', 1: 'Hazardous'})
 st.bar_chart(hazard_counts)
 
-# Line Chart — Average Velocity by Hazard Status
+# Line Chart
 st.subheader("📈 Average Velocity by Hazard Status")
 avg_velocity = data.groupby('hazardous')['velocity_kms'].mean().rename({0: 'Safe', 1: 'Hazardous'})
 st.line_chart(avg_velocity)
 
-# Scatter Plot — Velocity vs Miss Distance
+# Scatter Plot
 st.subheader("📊 Velocity vs Miss Distance Scatterplot")
-
 plt.figure(figsize=(8,5))
 sns.scatterplot(data=filtered_data, x='velocity_kms', y='miss_distance_km', hue='hazardous', palette=['green', 'red'])
 plt.xlabel("Velocity (km/s)")
@@ -72,7 +69,7 @@ plt.ylabel("Miss Distance (km)")
 plt.title("Velocity vs Miss Distance by Hazard Status")
 st.pyplot(plt)
 
-# Interactive Globe Map
+# Map
 st.subheader("🌐 NEO Miss Distance Map (Simulated Locations)")
 m = folium.Map(location=[0, 0], zoom_start=2)
 
@@ -93,7 +90,7 @@ for _, row in filtered_data.iterrows():
 
 folium_static(m, width=900, height=500)
 
-# Animated Line Chart — Velocity Trend
+# Animated Line Chart
 st.subheader("📈 Animated NEO Velocity Trend (Simulated Dates)")
 
 if 'date' not in data.columns:
@@ -114,7 +111,7 @@ fig = px.line(
 
 st.plotly_chart(fig, use_container_width=True)
 
-# Prediction section
+# Prediction
 st.markdown("---")
 st.subheader("🚀 Predict if a NEO is Hazardous")
 
@@ -133,11 +130,11 @@ if st.button("Predict Hazard Status"):
     else:
         st.success("✅ This NEO is predicted to be **Safe**.")
 
-# Open-generation Q&A section
+# DeepSeek Open-Q&A
 st.markdown("---")
 st.subheader("🤖 Ask Jinx AI Anything About Space, NEOs, or Science")
 
-# Load Hugging Face API token safely
+# Hugging Face token
 hf_token = st.secrets["hf_token"]
 
 API_URL = "https://api-inference.huggingface.co/models/deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
@@ -155,7 +152,9 @@ def generate_open_response(prompt):
     }
     response = requests.post(API_URL, headers=headers, json=payload)
     if response.status_code == 200:
-        return response.json()[0]['generated_text']
+        generated_text = response.json()[0]['generated_text']
+        clean_answer = generated_text.replace(prompt, "").strip()
+        return clean_answer
     else:
         return f"❌ Error: {response.status_code} - {response.text}"
 
@@ -169,15 +168,12 @@ if st.button("Ask Jinx AI"):
     else:
         st.warning("❗ Please enter a valid question.")
 
+# Footer
 st.markdown("---")
 st.caption("👨‍💻 Developed by Vijayraj S | AI-DS | Chennai Institute of Technology")
-   
 
 
 
-    
- 
-     
   
   
 
