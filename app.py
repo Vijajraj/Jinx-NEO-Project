@@ -22,18 +22,24 @@ st.markdown("---")
 
 # Sidebar filters
 st.sidebar.header("🔍 Filters")
+
+# Diameter slider
 min_diameter = st.sidebar.slider(
     "Minimum Diameter (km)",
     float(data['diameter_min'].min()),
     float(data['diameter_min'].max()),
     0.1
 )
+
+# Hazard status dropdown
 hazard_option = st.sidebar.selectbox(
     "Filter by Hazard Status",
     ['All', 'Hazardous', 'Safe']
 )
 
+# Filter data based on selections
 filtered_data = data[data['diameter_min'] >= min_diameter]
+
 if hazard_option == 'Hazardous':
     filtered_data = filtered_data[filtered_data['hazardous'] == 1]
 elif hazard_option == 'Safe':
@@ -43,17 +49,17 @@ st.write(f"**Total NEOs after filter:** {len(filtered_data)}")
 st.dataframe(filtered_data)
 st.markdown("---")
 
-# Bar Chart
+# Bar Chart — Hazard Status Distribution
 st.subheader("📊 NEO Hazard Status Distribution")
 hazard_counts = data['hazardous'].value_counts().rename({0: 'Safe', 1: 'Hazardous'})
 st.bar_chart(hazard_counts)
 
-# Line Chart
+# Line Chart — Average Velocity by Hazard Status
 st.subheader("📈 Average Velocity by Hazard Status")
 avg_velocity = data.groupby('hazardous')['velocity_kms'].mean().rename({0: 'Safe', 1: 'Hazardous'})
 st.line_chart(avg_velocity)
 
-# Scatter Plot
+# Scatter Plot — Velocity vs Miss Distance
 st.subheader("📊 Velocity vs Miss Distance Scatterplot")
 plt.figure(figsize=(8,5))
 sns.scatterplot(data=filtered_data, x='velocity_kms', y='miss_distance_km', hue='hazardous', palette=['green', 'red'])
@@ -62,9 +68,10 @@ plt.ylabel("Miss Distance (km)")
 plt.title("Velocity vs Miss Distance by Hazard Status")
 st.pyplot(plt)
 
-# Globe Map
+# Interactive Globe Map
 st.subheader("🌐 NEO Miss Distance Map (Simulated Locations)")
 m = folium.Map(location=[0, 0], zoom_start=2)
+
 for _, row in filtered_data.iterrows():
     lat = np.random.uniform(-90, 90)
     lon = np.random.uniform(-180, 180)
@@ -78,6 +85,7 @@ for _, row in filtered_data.iterrows():
         fill=True,
         fill_opacity=0.7
     ).add_to(m)
+
 folium_static(m, width=900, height=500)
 
 # Animated Velocity Trend
@@ -99,9 +107,10 @@ fig = px.line(
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# Prediction Section
+# Prediction section
 st.markdown("---")
 st.subheader("🚀 Predict if a NEO is Hazardous")
+
 diameter_min = st.number_input("Estimated Diameter Min (km)", min_value=0.0, value=0.5)
 diameter_max = st.number_input("Estimated Diameter Max (km)", min_value=0.0, value=1.5)
 velocity = st.number_input("Velocity (km/s)", min_value=0.0, value=20.0)
@@ -116,15 +125,11 @@ if st.button("Predict Hazard Status"):
     else:
         st.success("✅ This NEO is predicted to be **Safe**.")
 
-# Q&A AI Section
 # 🤖 Open-generation Q&A section using Hugging Face API
 st.markdown("---")
 st.subheader("🤖 Ask Jinx AI Anything About Space, NEOs, or Science")
 
-# Load Hugging Face API token safely
 hf_token = st.secrets["huggingface"]["hf_token"]
-
-# ✅ Use Llama-2-13b-chat-hf as it supports API inference
 API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-2-13b-chat-hf"
 headers = {"Authorization": f"Bearer {hf_token}"}
 
@@ -148,7 +153,6 @@ def generate_open_response(prompt):
     else:
         return f"❌ Error: {response.status_code} - {response.text}"
 
-# User input field
 user_question = st.text_input("Ask a question", placeholder="E.g., How fast do NEOs travel in space?")
 
 if st.button("Ask Jinx AI"):
@@ -158,6 +162,14 @@ if st.button("Ask Jinx AI"):
             st.success(answer)
     else:
         st.warning("❗ Please enter a valid question.")
+
+st.markdown("---")
+st.caption("👨‍💻 Developed by Vijayraj S | AI-DS | Chennai Institute of Technology")
+
+  
+
+  
+
 
 
 
