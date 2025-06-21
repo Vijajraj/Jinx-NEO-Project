@@ -79,10 +79,11 @@ st.sidebar.markdown("---")
 st.sidebar.header("🔍 Filters")
 min_diameter = st.sidebar.slider(
     "Minimum Diameter (km)",
-    float(data['estimated_diameter_min'].min()),
-    float(data['estimated_diameter_min'].max()),
+    float(data['diameter_min'].min()),
+    float(data['diameter_min'].max()),
     0.1
 )
+
 
 hazard_option = st.sidebar.selectbox(
     "Filter by Hazard Status",
