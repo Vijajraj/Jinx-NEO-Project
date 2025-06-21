@@ -13,7 +13,8 @@ data = pd.read_csv("final_neo_dataset.csv")
 
 # Load model and scaler
 model = joblib.load("best_model.pkl")
-scaler = joblib.load("best_scaler.pkl")
+scaler = joblib.load("scaler.pkl")
+
 
 # Streamlit page config
 st.set_page_config(page_title="Jinx: NEO Hazard Predictor", layout="wide")
